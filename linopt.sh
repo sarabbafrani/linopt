@@ -250,6 +250,8 @@ export_full_report() {
 
     echo -e "${GREEN}✅ Report saved:${NC} $report"
     echo "You can now copy and send this file to a support team for deeper analysis."
+    cat "$report"
+    echo -e "${YELLOW}📄 Report file saved to:${NC} $report"
 }
 
 
