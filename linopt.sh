@@ -166,6 +166,62 @@ verify_xanmod_kernel() {
     fi
 }
 
+
+
+export_full_report() {
+    print_header "Exporting Full System Status Report"
+    mkdir -p /opt/linopt-reports
+    report="/opt/linopt-reports/opt_report_$(hostname)_$(date +%F_%H-%M-%S).txt"
+    {
+        echo "=== SERVER REPORT ==="
+        echo "# Hostname       : $(hostname)"
+        echo "# Date           : $(date)"
+        echo "# OS             : $(lsb_release -ds 2>/dev/null || cat /etc/os-release)"
+        echo "# Kernel         : $(uname -r)"
+        echo "# Architecture   : $(uname -m)"
+        echo "# Uptime         : $(uptime -p)"
+        echo
+        echo "=== CPU & Memory ==="
+        lscpu
+        echo
+        free -h
+        echo
+        echo "=== Network Interfaces ==="
+        ip -brief address
+        echo
+        echo "=== DNS Settings ==="
+        cat /etc/resolv.conf
+        echo
+        echo "=== Network sysctl ==="
+        for key in "${!OPTIMIZED_SYSCTL[@]}"; do
+            echo "$key = $(sysctl -n $key 2>/dev/null)"
+        done
+        echo
+        echo "=== Ulimits ==="
+        ulimit -a
+        echo
+        echo "=== Limits.conf ==="
+        grep -v '^#' /etc/security/limits.conf | grep -v '^$'
+        echo
+        echo "=== systemd limits ==="
+        grep LimitNOFILE /etc/systemd/*.conf
+        echo
+        echo "=== NGINX Version ==="
+        nginx -v 2>&1
+        echo
+        echo "=== XanMod Kernel Status ==="
+        uname -r | grep -iq xanmod && echo "XanMod is ACTIVE" || echo "XanMod is NOT active"
+        echo
+        echo "=== Top Resource Consumers ==="
+        ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%mem | head -n 15
+    } > "$report"
+
+    echo -e "${GREEN}✅ Report saved successfully.${NC}"
+    echo -e "${YELLOW}📄 Report file saved to:${NC} $report"
+    echo
+    cat "$report"
+}
+
 main_menu() {
     while true; do
         echo -e "\n${CYAN}Ubuntu Network + NGINX Optimization Menu${NC}"
