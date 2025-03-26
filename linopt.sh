@@ -1,3 +1,5 @@
+
+
 #!/bin/bash
 
 set -euo pipefail
@@ -164,6 +166,41 @@ verify_xanmod_kernel() {
     fi
 }
 
+main_menu() {
+    while true; do
+        echo -e "\n${CYAN}Ubuntu Network + NGINX Optimization Menu${NC}"
+        echo "0) Check current vs optimized values"
+        echo "1) Apply sysctl network optimizations"
+        echo "2) Apply file descriptor + systemd limits"
+        echo "3) Apply NGINX optimizations"
+        echo "4) Verify sysctl changes were applied"
+        echo "5) Apply ALL optimizations"
+        echo "6) Install and configure XanMod Kernel"
+        echo "8) Export full system/server status report (for support review)"
+        echo "q) Quit"
+        echo -n "Select an option: "
+        read -r choice
+        case $choice in
+            0) check_values ;;
+            1) apply_sysctl ;;
+            2) apply_limits ;;
+            3) apply_nginx_config ;;
+            4) verify_sysctl_applied ;;
+            5)
+                apply_sysctl
+                apply_limits
+                apply_nginx_config
+                ;;
+            6)
+                install_xanmod_kernel
+                verify_xanmod_kernel
+                ;;
+            8) export_full_report ;;
+            q|Q) echo "Exiting..."; exit 0 ;;
+            *) echo -e "${RED}Invalid choice, try again.${NC}" ;;
+        esac
+    done
+}
 main_menu() {
     while true; do
         echo -e "\n${CYAN}Ubuntu Network + NGINX Optimization Menu${NC}"
