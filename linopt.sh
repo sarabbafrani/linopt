@@ -42,18 +42,14 @@ backup_file() {
     [ -f "$file" ] && cp "$file" "${file}.bak-$(date +%F_%T)"
 }
 
+
 check_values() {
     print_header "Current vs Optimized System Values"
-    printf "${YELLOW}%-35s %-20s %-20s %-10s${NC}\n" "Parameter" "Current" "Optimized" "Status"
+    printf "${YELLOW}%-35s %-40s %-40s${NC}\n" "Parameter" "Current" "Optimized"
     for key in "${!OPTIMIZED_SYSCTL[@]}"; do
         current=$(sysctl -n "$key" 2>/dev/null || echo "N/A")
         expected="${OPTIMIZED_SYSCTL[$key]}"
-        if [ "$current" == "$expected" ]; then
-            status="${GREEN}TRUE${NC}"
-        else
-            status="${RED}FALSE${NC}"
-        fi
-        printf "%-35s %-20s %-20s %b\n" "$key" "$current" "$expected" "$status"
+        printf "%-35s %-40s %-40s\n" "$key" "$current" "$expected"
     done
 }
 
@@ -178,7 +174,7 @@ main_menu() {
         echo "4) Verify sysctl changes were applied"
         echo "5) Apply ALL optimizations"
         echo "6) Install and configure XanMod Kernel"
-        echo "q) Quit"
+        echo "8) Export full system/server status report (for support review)"\necho "q) Quit"
         echo -n "Select an option: "
         read -r choice
         case $choice in
@@ -196,10 +192,64 @@ main_menu() {
                 install_xanmod_kernel
                 verify_xanmod_kernel
                 ;;
+            8) export_full_report ;;
             q|Q) echo "Exiting..."; exit 0 ;;
             *) echo -e "${RED}Invalid choice, try again.${NC}" ;;
         esac
     done
 }
+
+
+export_full_report() {
+    mkdir -p /opt/linopt-reports
+    report="/opt/linopt-reports/opt_report_$(hostname)_$(date +%F_%H-%M-%S).txt"
+    {
+        echo "=== SERVER REPORT ==="
+        echo "# Hostname       : $(hostname)"
+        echo "# Date           : $(date)"
+        echo "# OS             : $(lsb_release -ds 2>/dev/null || cat /etc/os-release)"
+        echo "# Kernel         : $(uname -r)"
+        echo "# Architecture   : $(uname -m)"
+        echo "# Uptime         : $(uptime -p)"
+        echo
+        echo "=== CPU & Memory ==="
+        lscpu
+        echo
+        free -h
+        echo
+        echo "=== Network Interfaces ==="
+        ip -brief address
+        echo
+        echo "=== DNS Settings ==="
+        cat /etc/resolv.conf
+        echo
+        echo "=== Network sysctl ==="
+        for key in "${!OPTIMIZED_SYSCTL[@]}"; do
+            echo "$key = $(sysctl -n $key 2>/dev/null)"
+        done
+        echo
+        echo "=== Ulimits ==="
+        ulimit -a
+        echo
+        echo "=== Limits.conf ==="
+        grep -v '^#' /etc/security/limits.conf | grep -v '^$'
+        echo
+        echo "=== systemd limits ==="
+        grep LimitNOFILE /etc/systemd/*.conf
+        echo
+        echo "=== NGINX Version ==="
+        nginx -v 2>&1
+        echo
+        echo "=== XanMod Kernel Status ==="
+        uname -r | grep -iq xanmod && echo "XanMod is ACTIVE" || echo "XanMod is NOT active"
+        echo
+        echo "=== Top Resource Consumers ==="
+        ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%mem | head -n 15
+    } > "$report"
+
+    echo -e "${GREEN}✅ Report saved:${NC} $report"
+    echo "You can now copy and send this file to a support team for deeper analysis."
+}
+
 
 main_menu
