@@ -174,7 +174,8 @@ main_menu() {
         echo "4) Verify sysctl changes were applied"
         echo "5) Apply ALL optimizations"
         echo "6) Install and configure XanMod Kernel"
-        echo "8) Export full system/server status report (for support review)"\necho "q) Quit"
+        echo "8) Export full system/server status report (for support review)"
+        echo "q) Quit"
         echo -n "Select an option: "
         read -r choice
         case $choice in
